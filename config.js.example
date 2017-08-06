@@ -1,1 +1,3 @@
-const token = "123"; //dummy value
+module.exports = {
+  'token' : '<your token here>'
+}
