@@ -3,13 +3,16 @@ const client = new Discord.Client();
 
 const t = require('./config.js');
 const maps = require('./modules/ninAPI.js');
+const time = require('./modules/time.js');
 
-var currentMaps = 0;
+var currentMaps = [];
 var prevMessage = null;
 
 client.on('ready', () => {
   console.log('I am ready!');
-  client.setInterval(postCurrentMapRotation, getInterval());
+  postCurrentMapRotation();
+  client.setTimeout(function(){client.setInterval(postCurrentMapRotation, getInterval())}, time.nextOddHour() + 60 * 1000);
+  console.log("Next post will occur in: ", (time.nextOddHour() + 60 * 1000)/1000 + " seconds");
 });
 
 client.on('message', message => {
@@ -25,6 +28,9 @@ client.on('message', message => {
           .catch(console.error)
         )
         .catch(console.error);
+    }
+    if(message.content == "!maps"){
+      message.reply(formatMapPost());
     }
     if (message.content === '!destroy') {
       client.destroy();
@@ -50,24 +56,19 @@ function messageCreator(message){
 
 function getInterval(){
   //2h * 60min/h * 60s/min * 1000ms/s
-  //return 2 * 60 * 60 * 1000;
-  return 6000;
+  return 2 * 60 * 60 * 1000;
+  //return 6000;
 }
 
 function postCurrentMapRotation(){
-  //TODO change to off-the-hook and eventually to a generalized solution
-  var channel = client.guilds.find('name', 'Inkopolis Square').channels.find('name', 'bot-spam');
-  if(prevMessage !== null && prevMessage !== {}) prevMessage.delete();
-  if(currentMaps == 0){
-    console.log("inside if statement")
+  if(prevMessage != null) prevMessage.delete();
+  if(currentMaps.length <= 1){
     maps.getCurrentMaps().then(function(maps){
       parseMapsJSON(maps);
       return maps;
     });
   }else{
-    console.log("inside else statement")
-    console.log(currentMaps)
-    postNextMap();
+    postNextMap(true);
   }
 }
 
@@ -76,32 +77,59 @@ function parseMapsJSON(maps){
   var s = Math.floor(d.getTime()/1000);
   //Trim off the maps that have already been rotated through, leaving only the current and upcoming maps
   var current = 0;
-  console.log(maps.gachi[0])
-  console.log(maps.gachi[0].end_time)
-  console.log(s)
-  while(s > maps.gachi[current].end_time){
-    console.log(current, s, maps.gachi[current].end_time, s > maps.gachi[current].end_time)
-    current++;
-  }
+  while(s > maps.gachi[current].end_time) current++;
   maps.gachi.splice(0, current);
   maps.regular.splice(0, current);
   maps.league.splice(0, current);
 
-  console.log(maps)
   // push into an array
-  // currentMaps = [];
-  // var temp = {};
-  // for(var i = 0; i < maps.gachi.length; i++){
-  //   temp = {
-  //     ranked: {
-  //       game_mode: maps.gachi[0].rule[]
-  //     }
-  //   }
-  // }
+  currentMaps = [];
+  var temp = {};
+  for(var i = 0; i < maps.gachi.length; i++){
+    currentMaps.push({
+      ranked: {
+        game_mode: maps.gachi[i].rule["name"],
+        map_a: maps.gachi[i].stage_a["name"],
+        map_b: maps.gachi[i].stage_b["name"]
+      },
+      regular: {
+        game_mode: "Turf War", //Regular Battles are always Turf War at this point
+        map_a: maps.regular[i].stage_a["name"],
+        map_b: maps.regular[i].stage_b["name"]
+      },
+      league: {
+        game_mode: maps.league[i].rule["name"],
+        map_a: maps.league[i].stage_a["name"],
+        map_b: maps.league[i].stage_b["name"]
+      }
+    });
+  }
+
+  postNextMap(true);
 }
 
-function postNextMap(){
+/*
+* Formats and sends the message about the current maps,
+* Also deletes the previous map if applicable.
+*/
+function postNextMap(shouldDelete){
+  //TODO change to off-the-hook and eventually to a generalized solution
+  var channel = client.guilds.find('name', 'Inkopolis Square').channels.find('name', 'current-maps');
+  //delete the previous maps from the array
+  if(shouldDelete) currentMaps.splice(0, 1);
+  var message = formatMapPost()
+  channel.send(message).then(message => prevMessage = message);
+}
 
+/*
+* Helper function to format the map posting message
+*/
+function formatMapPost(){
+  //Format message
+  var message = "Ranked: " + currentMaps[0].ranked.game_mode + " - " + currentMaps[0].ranked.map_a + " - " + currentMaps[0].ranked.map_b;
+  message += " \nRegular Battle: Turf War - " + currentMaps[0].regular.map_a + " - " + currentMaps[0].regular.map_b;
+  message += " \nLeague: " + currentMaps[0].league.game_mode + " - " + currentMaps[0].league.map_a + " - " + currentMaps[0].league.map_b;
+  return message;
 }
 
 client.login(t.token);
