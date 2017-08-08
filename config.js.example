@@ -1,3 +1,6 @@
 module.exports = {
-  'token' : '<your token here>'
+  'token' : '<your token here>',
+  'client_id' : '<your Nintendo Client Id here>',
+  'resource_id': '<the resource_id of splatoon 2 here>'
+  'init_session_token' : '<initial session token here>'
 }
