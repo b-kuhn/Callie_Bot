@@ -1,12 +1,10 @@
 var exports = module.exports = {};
 
-//Credits go to Miller_S for this one
 /**
 	Returns in milliseconds the amount of time between the time the function is called to the next odd hour
 	@return (number) the amount of time in milliseconds
 **/
 exports.nextOddHour = function(){
-  var d = new Date();
 	//get the current time
 	var d = new Date();
 	//convert time to milliseconds
@@ -28,17 +26,21 @@ exports.nextOddHour = function(){
 		return dateToMilliseconds(f.getMilliseconds() - d.getMilliseconds(), f.getSeconds() - d.getSeconds(), f.getMinutes() - d.getMinutes(),
 									f.getHours() - d.getHours(), f.getDay() - d.getDay(), f.getMonth() - d.getMonth(), f.getYear() - d.getYear());
 	}
-	/**
-	Returns in milliseconds the amount of time given
-	@param (number) number of milliseconds
-	@param (number) number of seconds
-	@param (number) number of minutes
-	@param (number) number of hours
-	@param (number) number of days
-	@param (number) number of months
-	@param (number) number of years
-	@return (number) the amount of time in milliseconds
-**/
-	exports.dateToMilliseconds = function(ms, s, min,h,d,months,y){
+
+  /**
+    Returns in milliseconds the amount of time given
+    @param (number) number of milliseconds
+    @param (number) number of seconds
+    @param (number) number of minutes
+    @param (number) number of hours
+    @param (number) number of days
+    @param (number) number of months
+    @param (number) number of years
+    @return (number) the amount of time in milliseconds
+  **/
+  function dateToMilliseconds(ms, s, min,h,d,months,y){
 		return ((y * 31557600000) + (months * 2629800000) + (d * 86400000) + (3600000 * h) + (60000 * min) + (1000 * s) + ms);
 	}
+  exports.dateToMilliseconds = function(ms, s, min, h, d, months, y){
+    dateToMilliseconds(ms, s, min, h, d, months, y);
+  }

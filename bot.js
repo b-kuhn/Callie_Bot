@@ -11,8 +11,6 @@ var prevMessage = null;
 client.on('ready', () => {
   console.log('I am ready!');
   postCurrentMapRotation();
-  client.setTimeout(function(){client.setInterval(postCurrentMapRotation, getInterval())}, time.nextOddHour() + 60 * 1000);
-  console.log("Next post will occur in: ", (time.nextOddHour() + 60 * 1000)/1000 + " seconds");
 });
 
 client.on('message', message => {
@@ -29,14 +27,11 @@ client.on('message', message => {
         )
         .catch(console.error);
     }
-    if(message.content == "!maps"){
-      message.reply(formatMapPost());
-    }
     if (message.content === '!destroy') {
       client.destroy();
     }
   } else {
-    //if(message.content.charAt(0) === "!") message.reply("@srs_seth fucked up again, go bug him");
+    //if(message.content.charAt(0) === "!") message.reply("@srs_seth done goofed, go bug him");
     //message.reply("Sorry, you don't have the necessary privelages to run this command. Ask a moderator that has the \"Manage Messages\" permission to run the command for you.")
   }
   if(message.content === '!invite'){
@@ -48,16 +43,13 @@ client.on('message', message => {
       messageCreator(message);
     });
   }
+  if(message.content == "!maps"){
+    message.reply(formatMapPost());
+  }
 });
 
 function messageCreator(message){
   message.channel.send(`Something went wrong, ${message.member.guild.members.find('id', '183675563335090176')} you done goofed.`);
-}
-
-function getInterval(){
-  //2h * 60min/h * 60s/min * 1000ms/s
-  return 2 * 60 * 60 * 1000;
-  //return 6000;
 }
 
 function postCurrentMapRotation(){
@@ -81,7 +73,8 @@ function parseMapsJSON(maps){
   maps.gachi.splice(0, current);
   maps.regular.splice(0, current);
   maps.league.splice(0, current);
-
+  //Detect if this is the first time posting since launching the bot
+  if(currentMaps.length == 0) setAutoMapPost(maps.gachi[0].end_time);
   // push into an array
   currentMaps = [];
   var temp = {};
@@ -130,6 +123,18 @@ function formatMapPost(){
   message += " \nRegular Battle: Turf War - " + currentMaps[0].regular.map_a + " - " + currentMaps[0].regular.map_b;
   message += " \nLeague: " + currentMaps[0].league.game_mode + " - " + currentMaps[0].league.map_a + " - " + currentMaps[0].league.map_b;
   return message;
+}
+
+/*
+* Syncs the bot up to post the new maps every two hours with the correct offset.
+*/
+function setAutoMapPost(nextRotation){
+  var nextPost = time.timeUntil(nextRotation) + 1 * 60 * 1000;
+  client.setTimeout(function(){
+    postNextMap(true);
+    client.setInterval(function(){postCurrentMapRotation()},  (2 * 60 * 60 * 1000));//h * m * s * ms -- currently every two hours
+  }, nextPost);
+  console.log("Next post will occur in: ", nextPost/1000 + " seconds");
 }
 
 client.login(t.token);
