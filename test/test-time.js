@@ -5,6 +5,7 @@ const time = require('./../modules/time.js');
 
 describe('The time module', function(){
   it('handles calculating the time until a future date.', function(){
+    time.timeUntil.restore();
     var futureTime = 1534099656000;
     var pastTime = 1471027656000;
 

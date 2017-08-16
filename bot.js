@@ -4,13 +4,17 @@ const client = new Discord.Client();
 //Grab custom modules
 const t = require('./config.js');
 const log = require('./modules/log.js');
-const map = require('./modules/maps.js')
-const f = require('./modules/format.js')
+const map = require('./modules/maps.js');
+const f = require('./modules/format.js');
+const schedule = require('./modules/schedule.js');
 
 //Bot has just started up, begin auto post schedules
 client.on('ready', () => {
   console.log('I am ready!');
-  //postCurrentMapRotation();
+  schedule.constructScheduleObject(client);
+  
+  map.current().then(function(maps){console.log(maps)});
+  schedule.scheduleMapPosts(client, channel);
 });
 
 //Parse messages, decide if they are commands and react accordingly
@@ -47,8 +51,14 @@ client.on('message', message => {
   }
   //Post the current rotation of maps
   if(message.content == "!maps"){
-    map.current().then(function(map){
-      message.channel.send(f.formatMapPost(map));
+    map.current().then(function(maps){
+      message.channel.send(f.formatMapPost(maps));
+    })
+  }
+  //Post the next rotation of maps
+  if(message.content == "!next"){
+    map.next().then(function(maps){
+      message.channel.send(f.formatMapPost(maps))
     })
   }
   //Simple command to see if the bot is alive

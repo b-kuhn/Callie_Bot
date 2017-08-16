@@ -5,26 +5,82 @@ const log = require('./log.js');
 
 var currentMaps = [];
 
-/*
+/**
 * Returns the current map rotation
 */
 exports.current = function(){
   return new Promise(function(resolve){
-    resolve(next());
+    getMaps(1).then(function(){
+      resolve(currentMaps[0]);
+    })
   });
 }
 
-function next(){
-  //Refresh the maps list before purging the last rotation
+/**
+* Returns the next map rotation
+*/
+exports.next = function(){
   return new Promise(function(resolve){
-    if (currentMaps.length <= 1){
+    getMaps(2).then(function(){
+      resolve(currentMaps[1]);
+    })
+  })
+}
+
+/**
+* Returns the next n map roations
+* @param (number) The number of maps that need to be returned
+*/
+exports.nextNMaps = function(numMaps){
+  if(numMaps > 12) numMaps = 12; //Can only fetch 12 rotations, limitation of ninAPI
+  return new Promise(function(resolve){
+    getMaps(numMaps).then(function(){
+      var maps = [];
+      for(var i = 1; i <= numMaps; i++) maps.push(currentMaps[i]);
+      resolve(maps);
+    })
+  })
+}
+
+/**
+* Refreshes the currentMaps array to the most up to date info
+*/
+exports.refresh = function(){
+  return new Promise(function(resolve){
+    getMaps(1).then(function(){
+      resolve("Maps refreshed.");
+    })
+  })
+}
+
+/**
+* Clears the currentMaps array
+*/
+exports.clear = function(){
+  currentMaps = [];
+}
+
+/**
+* Returns the currentMaps object
+*/
+exports.raw = function(){
+  return currentMaps;
+}
+
+/**
+* Fetches the current maps and returns the first
+* @param (number) the number of maps we need to return later
+*/
+function getMaps(numMaps){
+  //Refresh the maps list before purging the last rotation
+  purgeOldRotation();
+  return new Promise(function(resolve){
+    if (currentMaps.length < numMaps){
       ninAPI.getCurrentMaps().then(function(maps){
         parse(maps);
-        purgeOldRotation();
         resolve(currentMaps[0]);
       });
     } else {
-      purgeOldRotation();
       resolve(currentMaps[0]);
     }
   });
@@ -54,6 +110,7 @@ function parse(maps){
       },
       end_time: maps.gachi[i].end_time * 1000
     });
+    purgeOldRotation(); //there *shouldn't* be any old maps, but just incase we'll run this again.
   }
 }
 
@@ -63,8 +120,8 @@ function parse(maps){
 function purgeOldRotation(){
   var spliced = [];
   var current = 0;
-  //if all goes well, this either will not loop or loop exactly once
-  while(time.timeUntil(null, currentMaps[current].end_time) <= 0) current++;
+  //if all goes well, this either will not loop or loop exactly once (if on a 2hour auto post schedule)
+  while(current < currentMaps.length && time.timeUntil(null, currentMaps[current].end_time) <= 0) current++;
   //Splice out the old maps
   spliced = currentMaps.splice(0, current);
   if(log.logging) log.write(spliced); //TODO properly format the array for easier viewing on the log
